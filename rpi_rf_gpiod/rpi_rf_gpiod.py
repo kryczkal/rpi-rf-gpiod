@@ -80,15 +80,18 @@ class RFDevice:
         _LOGGER.debug("Using GPIO %d", self.gpio_num)
 
     def cleanup(self):
-        """Release GPIO resources."""
-        if self.request:
-            self.request.close()
-            _LOGGER.debug("GPIO resources released.")
+        """
+        Release GPIO resources. In gpiod v2, this is handled automatically
+        when the LineRequest object is garbage collected. This method is kept
+        for API compatibility but does nothing.
+        """
+        self.request = None # This will release the line request
+        _LOGGER.debug("GPIO resources released.")
 
     def enable_tx(self):
         """Enable transmitter mode."""
-        if self.request:
-            self.request.close()
+        # Overwriting the request object will release the previous one
+        self.request = None
 
         config = {
             self.gpio_num: gpiod.LineSettings(
@@ -102,16 +105,16 @@ class RFDevice:
 
     def enable_rx(self):
         """Enable receiver mode."""
-        if self.request:
-            self.request.close()
+        # Overwriting the request object will release the previous one
+        self.request = None
 
-        config = {
-            self.gpio_num: gpiod.LineSettings(
-                edge_detection=Edge.BOTH,
-                bias=Bias.PULL_DOWN,
-                debounce_period=timedelta(microseconds=50),
-            )
-        }
+        line_settings = gpiod.LineSettings(
+            edge_detection=Edge.BOTH,
+            bias=Bias.PULL_DOWN
+        )
+        line_settings.debounce_period = timedelta(microseconds=50)
+
+        config = {self.gpio_num: line_settings}
         self.request = gpiod.request_lines(
             GPIO_CHIP, consumer="rpi-rf-gpiod-rx", config=config
         )
