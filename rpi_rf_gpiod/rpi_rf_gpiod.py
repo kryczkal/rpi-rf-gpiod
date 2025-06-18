@@ -5,6 +5,7 @@ Sending and receiving 433/315Mhz signals with low-cost GPIO RF Modules on a Rasp
 import logging
 import time
 from collections import namedtuple
+from datetime import timedelta
 
 import gpiod
 from gpiod.line import Direction, Value, Edge, Bias
@@ -108,7 +109,7 @@ class RFDevice:
             self.gpio_num: gpiod.LineSettings(
                 edge_detection=Edge.BOTH,
                 bias=Bias.PULL_DOWN,
-                debounce_period_us=50,
+                debounce_period=timedelta(microseconds=50),
             )
         }
         self.request = gpiod.request_lines(
@@ -212,7 +213,7 @@ class RFDevice:
         self.enable_rx()
         try:
             while True:
-                if self.request.wait_edge_events(sec=1):
+                if self.request.wait_edge_events(timedelta(seconds=1)):
                     events = self.request.read_edge_events()
                     for event in events:
                         self._process_rx_event(event)
