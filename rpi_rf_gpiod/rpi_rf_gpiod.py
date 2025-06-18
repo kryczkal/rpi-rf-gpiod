@@ -7,6 +7,7 @@ import time
 from collections import namedtuple
 
 import gpiod
+from gpiod.line import Direction, Value, Edge, Bias
 
 MAX_CHANGES = 67
 GPIO_CHIP = "/dev/gpiochip0"
@@ -90,7 +91,7 @@ class RFDevice:
 
         config = {
             self.gpio_num: gpiod.LineSettings(
-                direction=gpiod.Direction.OUTPUT, output_value=gpiod.Value.INACTIVE
+                direction=Direction.OUTPUT, output_value=Value.INACTIVE
             )
         }
         self.request = gpiod.request_lines(
@@ -105,8 +106,8 @@ class RFDevice:
 
         config = {
             self.gpio_num: gpiod.LineSettings(
-                edge_detection=gpiod.Edge.BOTH,
-                bias=gpiod.Bias.PULL_DOWN,
+                edge_detection=Edge.BOTH,
+                bias=Bias.PULL_DOWN,
                 debounce_period_us=50,
             )
         }
@@ -199,9 +200,9 @@ class RFDevice:
         if not self.request:
             _LOGGER.error("TX not enabled")
             return False
-        self.request.set_value(self.gpio_num, gpiod.Value.ACTIVE)
+        self.request.set_value(self.gpio_num, Value.ACTIVE)
         self._sleep((highpulses * self.tx_pulselength) / 1000000)
-        self.request.set_value(self.gpio_num, gpiod.Value.INACTIVE)
+        self.request.set_value(self.gpio_num, Value.INACTIVE)
         self._sleep((lowpulses * self.tx_pulselength) / 1000000)
         return True
 
