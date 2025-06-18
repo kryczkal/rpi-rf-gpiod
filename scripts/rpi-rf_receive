@@ -3,13 +3,8 @@
 import argparse
 import signal
 import sys
-import time
 import logging
-import gpiod
-
 from rpi_rf_gpiod import RFDevice
-
-rfdevice = None
 
 # pylint: disable=unused-argument
 def exithandler(signal, frame):
@@ -25,21 +20,13 @@ args = parser.parse_args()
 
 signal.signal(signal.SIGINT, exithandler)
 
-with gpiod.Chip("gpiochip0") as chip:
-    gpio = chip.get_line(args.gpio)
-    gpio.request(consumer="rpi-rf_receive", type=gpiod.LINE_REQ_EV_BOTH_EDGES)
-    rfdevice = RFDevice(gpio)
-    timestamp = None
-    logging.info("Listening for codes on GPIO " + str(args.gpio))
-    try:
-        while True:
-            ev_gpio = gpio.event_wait(sec=1)
-            if ev_gpio:
-                event = gpio.event_read()
-                rfdevice.rx_callback()
-                timestamp = rfdevice.rx_code_timestamp
-                logging.info(str(rfdevice.rx_code) +
-                            " [pulselength " + str(rfdevice.rx_pulselength) +
-                            ", protocol " + str(rfdevice.rx_proto) + "]")
-    except KeyboardInterrupt:
-        sys.exit(130)
+rfdevice = RFDevice(args.gpio)
+
+try:
+    for data in rfdevice.rx_listen():
+        logging.info(str(data['code']) +
+                     " [pulselength " + str(data['pulselength']) +
+                     ", protocol " + str(data['protocol']) + "]")
+except KeyboardInterrupt:
+    logging.info("Exiting...")
+    sys.exit(0)
